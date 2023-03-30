@@ -1,11 +1,5 @@
-/**
- *
- */
-// LINEアクセストークン
 const ACCESS_TOKEN = "vSwlEgvqmF9spgonbEm3v9JEzUxBPUiysyF9HHfwkVtjZ9UyC5bwKb8yyzv/io2WA9jcSz8PESjQOUFUSz6mzCh0k9dgfM71FWpFLu0lLp/j1tsvXtkXXe0h4JIr2dgKZf8tMp/M08wj3A83g2UyOwdB04t89/1O/w1cDnyilFU=";
-// DeepL APIトークン
 const API_KEY = "ad5f4f84-db97-f272-2c9c-1d8a80e27607:fx";
-//DeepL URL
 const API_URL = 'https://api-free.deepl.com/v2/translate';
 
 const FETCH_WAIT = 200;
@@ -114,11 +108,14 @@ async function messagefunc(event) {
     return;
   }
 
-//入力文字の言語判別
   let isJapanese=false;
   let message="";
-  for(var i=0; i < event.message.text.toString().length; i++){
-    if(event.message.text.toString().charCodeAt(i) >= 256) {
+  for(var i=0; i < event.message.text.toString().length; i++){//言語判別
+    // if(40959 >= event.message.text.toString().charCodeAt(i) >= 11776 || 64255 >= event.message.text.toString().charCodeAt(i) >= 63744 || 65535 >= event.message.text.toString().charCodeAt(i) >= 65024) {
+    //   isJapanese = true;
+    //   break;
+    // }
+    if(event.message.text.toString().charCodeAt(i) >= 11776) {
       isJapanese = true;
       break;
     }
@@ -131,6 +128,7 @@ async function messagefunc(event) {
       message = deepltranslateej(event.message.text);
     break;
   }
+  // message = deepltranslateje(event.message.text);
   return { type: "text", text: message };
 }
 //ポストバックイベントの処理
