@@ -6,6 +6,7 @@ const FETCH_WAIT = 200;
 
 // DeepL翻訳関数
 function deepltranslate(text, src, tgt) {
+
 	let t = text.toString();
 	let url = API_URL;
 	let content = encodeURI('auth_key=' + API_KEY + '&text=' + t
@@ -41,8 +42,45 @@ function deepltranslate(text, src, tgt) {
 
 		// JSONからテキストを取り出す
 	let json = JSON.parse(response.getContentText('UTF-8'));
-	return json.translations[0].text;
 
+  let source_lang = json.translations[0].detected_source_language
+	if (source_lang == 'JA') {
+    Logger.log("JA→EN：" + json.translations[0].text);
+		return json.translations[0].text;
+	} else {
+		let content_new = encodeURI('auth_key=' + API_KEY + '&text=' + t
+				+ '&source_lang=' + src + '&target_lang=ja');
+		const parameters_new = {
+			"method" : "post",
+			"headers" : postheader,
+			'payload' : content_new
+		}
+
+		// スプレッドシートから大量に呼ばれる可能性があるのでウェイトを入れておく
+		Utilities.sleep(FETCH_WAIT);
+		try {
+			response = UrlFetchApp.fetch(url, parameters_new);
+		} catch (e) {
+			Logger.log(e.toString());
+			return 'DeepL:Exception';
+		}
+
+		let response_code_new = response.getResponseCode().toString();
+
+		Logger.log(response_code_new + ':' + url);
+
+		if (response_code_new != 200)
+			return 'DeepL:HTTP Error(' + response_code_new + ')'
+
+			// JSONからテキストを取り出す
+		let json_new = JSON.parse(response.getContentText('UTF-8'));
+		Logger.log("EN→JA：" + json_new.translations[0].text);
+    return json_new.translations[0].text;
+	};
+}
+
+function deepltranslateBase(text) {
+	return deepltranslate(text, '', 'en');
 }
 
 function deepltranslateje(text) {
@@ -53,8 +91,7 @@ function deepltranslateej(text) {
 	return deepltranslate(text, 'en', 'ja');
 }
 
-async
-function doPost(e) {
+async function doPost(e) {
 	for (let i = 0; i < JSON.parse(e.postData.contents).events.length; i++) {
 		const event = JSON.parse(e.postData.contents).events[i];
 		const message = await
@@ -81,8 +118,7 @@ function doPost(e) {
 	})).setMimeType(ContentService.MimeType.JSON);
 }
 
-async
-function eventHandle(event) {
+async function eventHandle(event) {
 	let message;
 	console.log(event)
 	switch (event.type) {
@@ -105,8 +141,7 @@ function eventHandle(event) {
 	return message;
 }
 // メッセージイベントの処理
-async
-function messagefunc(event) {
+async function messagefunc(event) {
 	if (event.message.type !== 'text') {
 		return;
 	}
@@ -114,52 +149,49 @@ function messagefunc(event) {
 		return;
 	}
 
-	let isJapanese = false;
+	// let isJapanese = false;
 	let message = "";
-	for (var i = 0; i < event.message.text.toString().length; i++) {// 言語判別
-		// if(40959 >= event.message.text.toString().charCodeAt(i) >= 11776 ||
-		// 64255 >= event.message.text.toString().charCodeAt(i) >= 63744 ||
-		// 65535 >= event.message.text.toString().charCodeAt(i) >= 65024) {
-		// isJapanese = true;
-		// break;
-		// }
-		if (event.message.text.toString().charCodeAt(i) >= 11776) {
-			isJapanese = true;
-			break;
-		}
-	}
-	switch (isJapanese) {
-	case true:
-		message = deepltranslateje(event.message.text);
-		break;
-	case false:
-		message = deepltranslateej(event.message.text);
-		break;
-	}
-	// message = deepltranslateje(event.message.text);
+	// for (var i = 0; i < event.message.text.toString().length; i++) {// 言語判別
+	// 	// if(40959 >= event.message.text.toString().charCodeAt(i) >= 11776 ||
+	// 	// 64255 >= event.message.text.toString().charCodeAt(i) >= 63744 ||
+	// 	// 65535 >= event.message.text.toString().charCodeAt(i) >= 65024) {
+	// 	// isJapanese = true;
+	// 	// break;
+	// 	// }
+	// 	if (event.message.text.toString().charCodeAt(i) >= 11776) {
+	// 		isJapanese = true;
+	// 		break;
+	// 	}
+	// }
+	// switch (isJapanese) {
+	// case true:
+	// 	message = deepltranslateje(event.message.text);
+	// 	break;
+	// case false:
+	// 	message = deepltranslateej(event.message.text);
+	// 	break;
+	// }
+	message = deepltranslateBase(event.message.text);
 	return {
 		type : "text",
 		text : message
 	};
 }
 // ポストバックイベントの処理
-async
-function postbackFunc(event) {
+async function postbackFunc(event) {
 	return {
 		type : "text",
 		text : event.postback.data
 	};
 }
 // 友達登録時の処理
-async
-function followFunc(event) {
+async function followFunc(event) {
 	return {
 		type : "text",
 		text : "友達登録ありがとうございます!!"
 	};
 }
 // 友達解除後の処理
-async
-function unfollowFunc() {
+async function unfollowFunc() {
 	return undefined;
 }
